@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>NetworkManager OpenVPN SSO Plugin - OAuth 2.0 Single Sign-On for Linux VPN</title>
+    <meta name="title" content="NetworkManager OpenVPN SSO Plugin - OAuth 2.0 Single Sign-On for Linux VPN">
+    <meta name="description" content="A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On (SSO) support for OpenVPN connections on Linux. Browser-based authentication, automatic OAuth discovery, and seamless NetworkManager integration.">
+    <meta name="keywords" content="NetworkManager, OpenVPN, SSO, OAuth, OIDC, Single Sign-On, Linux VPN, VPN plugin, authentication, Rust, open source">
+    <meta name="author" content="Pegasus Heavy Industries LLC">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://pegasusheavy.github.io/network-manager-openvpn-sso/">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pegasusheavy.github.io/network-manager-openvpn-sso/">
+    <meta property="og:title" content="NetworkManager OpenVPN SSO Plugin - OAuth 2.0 Single Sign-On for Linux VPN">
+    <meta property="og:description" content="A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On (SSO) support for OpenVPN connections on Linux.">
+    <meta property="og:image" content="https://pegasusheavy.github.io/network-manager-openvpn-sso/og-image.png">
+    <meta property="og:site_name" content="NetworkManager OpenVPN SSO">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://pegasusheavy.github.io/network-manager-openvpn-sso/">
+    <meta name="twitter:title" content="NetworkManager OpenVPN SSO Plugin - OAuth 2.0 Single Sign-On for Linux VPN">
+    <meta name="twitter:description" content="A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On (SSO) support for OpenVPN connections on Linux.">
+    <meta name="twitter:image" content="https://pegasusheavy.github.io/network-manager-openvpn-sso/og-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+    
+    <!-- Tailwind CSS 4 -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#06b6d4',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Structured Data for SEO/AEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "NetworkManager OpenVPN SSO Plugin",
+        "applicationCategory": "NetworkApplication",
+        "operatingSystem": "Linux",
+        "description": "A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On (SSO) support for OpenVPN connections on Linux.",
+        "url": "https://pegasusheavy.github.io/network-manager-openvpn-sso/",
+        "downloadUrl": "https://github.com/pegasusheavy/network-manager-openvpn-sso/releases",
+        "softwareVersion": "0.1.0",
+        "author": {
+            "@type": "Organization",
+            "name": "Pegasus Heavy Industries LLC",
+            "url": "https://github.com/pegasusheavy"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "programmingLanguage": "Rust",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "OAuth 2.0 / OIDC Single Sign-On authentication",
+            "Browser-based SSO login",
+            "Automatic OAuth configuration discovery",
+            "Session token caching",
+            "Desktop notifications",
+            "Full NetworkManager integration"
+        ]
+    }
+    </script>
+    
+    <!-- FAQ Schema for AEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is NetworkManager OpenVPN SSO?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "NetworkManager OpenVPN SSO is a Linux VPN plugin that adds OAuth 2.0 and OIDC Single Sign-On support to OpenVPN connections. It allows users to authenticate using their browser with corporate SSO providers like Google, Microsoft, Okta, and others."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I install NetworkManager OpenVPN SSO on Arch Linux?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "On Arch Linux, download the .pkg.tar.zst package from the GitHub releases page and install it using: sudo pacman -U networkmanager-openvpn-sso-*.pkg.tar.zst"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I install NetworkManager OpenVPN SSO on Ubuntu or Debian?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "On Ubuntu or Debian, download the .deb package from the GitHub releases page and install it using: sudo dpkg -i networkmanager-openvpn-sso_*_amd64.deb && sudo apt-get install -f"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does NetworkManager OpenVPN SSO work with Google SSO?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, NetworkManager OpenVPN SSO works with any OAuth 2.0 or OIDC provider including Google, Microsoft Azure AD, Okta, Auth0, and others. The plugin automatically discovers the authentication URL from your OpenVPN server."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is NetworkManager OpenVPN SSO free and open source?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, NetworkManager OpenVPN SSO is completely free and open source under the MIT license. The source code is available on GitHub."
+                }
+            }
+        ]
+    }
+    </script>
+    
+    <!-- HowTo Schema for AEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": "How to Set Up OpenVPN SSO on Linux",
+        "description": "Step-by-step guide to configure OpenVPN with Single Sign-On authentication on Linux using NetworkManager.",
+        "step": [
+            {
+                "@type": "HowToStep",
+                "name": "Install the plugin",
+                "text": "Download and install the NetworkManager OpenVPN SSO plugin for your Linux distribution from the GitHub releases page."
+            },
+            {
+                "@type": "HowToStep",
+                "name": "Import your VPN configuration",
+                "text": "Import your .ovpn file using: nmcli connection import type openvpn file your-vpn-config.ovpn"
+            },
+            {
+                "@type": "HowToStep",
+                "name": "Configure the connection",
+                "text": "Update the connection to use the SSO plugin: nmcli connection modify 'your-vpn-name' vpn.service-type org.freedesktop.NetworkManager.openvpn-sso"
+            },
+            {
+                "@type": "HowToStep",
+                "name": "Connect to VPN",
+                "text": "Connect using: nmcli connection up 'your-vpn-name'. Your browser will open for SSO authentication."
+            }
+        ]
+    }
+    </script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .code-block {
+            background: #1e293b;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">🔐</span>
+                    <span class="font-bold text-lg hidden sm:block">NM OpenVPN SSO</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#features" class="hover:text-primary transition-colors">Features</a>
+                    <a href="#installation" class="hover:text-primary transition-colors">Install</a>
+                    <a href="#faq" class="hover:text-primary transition-colors">FAQ</a>
+                    <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-colors" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github mr-2"></i>GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-32 pb-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="inline-flex items-center glass px-4 py-2 rounded-full text-sm mb-8">
+                <i class="fa-solid fa-rocket text-accent mr-2"></i>
+                <span>Version 0.1.0 Now Available</span>
+            </div>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                OpenVPN with <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Single Sign-On</span> for Linux
+            </h1>
+            <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+                A NetworkManager plugin that brings OAuth 2.0 / OIDC authentication to your OpenVPN connections. 
+                Connect to your corporate VPN using Google, Microsoft, Okta, or any SSO provider.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso/releases" class="bg-primary hover:bg-primary/80 px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 flex items-center">
+                    <i class="fa-solid fa-download mr-3"></i>
+                    Download Latest Release
+                </a>
+                <a href="#installation" class="glass hover:bg-white/10 px-8 py-4 rounded-xl font-semibold text-lg transition-all flex items-center">
+                    <i class="fa-solid fa-book mr-3"></i>
+                    View Documentation
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">Powerful Features</h2>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+                    Everything you need to securely connect to SSO-enabled OpenVPN servers on Linux.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-primary/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-browser text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Browser-Based SSO</h3>
+                    <p class="text-gray-400">
+                        Authenticate using your default browser with any OAuth 2.0 or OIDC provider including Google, Microsoft, and Okta.
+                    </p>
+                </article>
+                
+                <!-- Feature 2 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-secondary/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-wand-magic-sparkles text-secondary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Automatic Discovery</h3>
+                    <p class="text-gray-400">
+                        The plugin automatically discovers OAuth configuration from your OpenVPN server. No manual setup required.
+                    </p>
+                </article>
+                
+                <!-- Feature 3 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-accent/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-network-wired text-accent text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">NetworkManager Integration</h3>
+                    <p class="text-gray-400">
+                        Works seamlessly with NetworkManager, GNOME, KDE, and all standard Linux network management tools.
+                    </p>
+                </article>
+                
+                <!-- Feature 4 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-bell text-green-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Desktop Notifications</h3>
+                    <p class="text-gray-400">
+                        Receive real-time notifications about connection status, authentication requests, and errors.
+                    </p>
+                </article>
+                
+                <!-- Feature 5 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-orange-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-key text-orange-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Session Token Caching</h3>
+                    <p class="text-gray-400">
+                        Securely caches session tokens for connection maintenance with restricted file permissions.
+                    </p>
+                </article>
+                
+                <!-- Feature 6 -->
+                <article class="feature-card glass rounded-2xl p-6 transition-all duration-300">
+                    <div class="w-14 h-14 bg-pink-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fa-brands fa-rust text-pink-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Built with Rust</h3>
+                    <p class="text-gray-400">
+                        Memory-safe, fast, and reliable. Written in Rust for maximum security and performance.
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="py-20 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">Quick Installation</h2>
+                <p class="text-gray-400 text-lg">
+                    Get up and running in minutes with packages for all major Linux distributions.
+                </p>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Arch Linux -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <i class="fa-brands fa-linux text-2xl text-blue-400 mr-3"></i>
+                        <h3 class="text-xl font-semibold">Arch Linux</h3>
+                    </div>
+                    <div class="code-block p-4">
+                        <code class="text-green-400">sudo pacman -U networkmanager-openvpn-sso-*.pkg.tar.zst</code>
+                    </div>
+                </div>
+                
+                <!-- Debian/Ubuntu -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <i class="fa-brands fa-ubuntu text-2xl text-orange-500 mr-3"></i>
+                        <h3 class="text-xl font-semibold">Debian / Ubuntu</h3>
+                    </div>
+                    <div class="code-block p-4 space-y-2">
+                        <code class="text-green-400 block">sudo dpkg -i networkmanager-openvpn-sso_*_amd64.deb</code>
+                        <code class="text-green-400 block">sudo apt-get install -f</code>
+                    </div>
+                </div>
+                
+                <!-- Fedora/RHEL -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <i class="fa-brands fa-fedora text-2xl text-blue-500 mr-3"></i>
+                        <h3 class="text-xl font-semibold">Fedora / RHEL / CentOS</h3>
+                    </div>
+                    <div class="code-block p-4">
+                        <code class="text-green-400">sudo dnf install networkmanager-openvpn-sso-*.x86_64.rpm</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso/releases" class="inline-flex items-center text-primary hover:text-primary/80 transition-colors">
+                    <i class="fa-solid fa-arrow-right mr-2"></i>
+                    View all releases and download options
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Usage Section -->
+    <section class="py-20 px-4 bg-white/5">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">Easy Setup</h2>
+                <p class="text-gray-400 text-lg">
+                    Configure your VPN connection in just a few commands.
+                </p>
+            </div>
+            
+            <div class="space-y-8">
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0 font-bold">1</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold mb-2">Import your VPN configuration</h3>
+                        <div class="code-block p-4">
+                            <code class="text-green-400">nmcli connection import type openvpn file your-vpn-config.ovpn</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0 font-bold">2</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold mb-2">Configure for SSO authentication</h3>
+                        <div class="code-block p-4">
+                            <code class="text-green-400">nmcli connection modify "your-vpn-name" vpn.service-type org.freedesktop.NetworkManager.openvpn-sso</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0 font-bold">3</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold mb-2">Connect and authenticate</h3>
+                        <div class="code-block p-4">
+                            <code class="text-green-400">nmcli connection up "your-vpn-name"</code>
+                        </div>
+                        <p class="text-gray-400 mt-2">Your browser will open automatically for SSO login.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-20 px-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+                <p class="text-gray-400 text-lg">
+                    Common questions about NetworkManager OpenVPN SSO.
+                </p>
+            </div>
+            
+            <div class="space-y-4">
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>What SSO providers are supported?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        NetworkManager OpenVPN SSO works with any OAuth 2.0 or OIDC provider including Google Workspace, Microsoft Azure AD, Okta, Auth0, Keycloak, and any other standard-compliant identity provider. The plugin automatically discovers the authentication URL from your OpenVPN server.
+                    </div>
+                </details>
+                
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>Does it work with KDE and GNOME?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        Yes! The plugin integrates with NetworkManager and works with all desktop environments including KDE Plasma, GNOME, XFCE, and others. It properly detects your graphical session and opens your default browser for authentication.
+                    </div>
+                </details>
+                
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>Is it secure?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        Absolutely. The plugin is written in Rust for memory safety, stores session tokens with restrictive file permissions (accessible only by root), and relies on your browser for secure SSO authentication. All credentials are handled by your identity provider—no passwords are stored locally.
+                    </div>
+                </details>
+                
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>Why do I need to authenticate each time I connect?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        The session tokens provided by OpenVPN servers are typically session-specific and expire when you disconnect. This is a security feature that ensures each connection is properly authenticated. If your browser has an active SSO session, the authentication will be automatic (no password re-entry needed).
+                    </div>
+                </details>
+                
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>Can I use this with the standard OpenVPN plugin?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        This plugin is designed specifically for SSO-enabled OpenVPN servers. For standard OpenVPN servers that use username/password authentication, continue using the standard <code>network-manager-openvpn</code> plugin. Both can be installed side-by-side.
+                    </div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="glass rounded-3xl p-12">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">Ready to Get Started?</h2>
+                <p class="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
+                    Download NetworkManager OpenVPN SSO and connect to your corporate VPN with ease.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso/releases" class="bg-primary hover:bg-primary/80 px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 flex items-center">
+                        <i class="fa-solid fa-download mr-3"></i>
+                        Download Now
+                    </a>
+                    <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso" class="glass hover:bg-white/10 px-8 py-4 rounded-xl font-semibold text-lg transition-all flex items-center" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-github mr-3"></i>
+                        Star on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 border-t border-white/10">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">🔐</span>
+                    <span class="font-semibold">NetworkManager OpenVPN SSO</span>
+                </div>
+                <div class="flex items-center space-x-6 text-gray-400">
+                    <a href="https://github.com/pegasusheavy/network-manager-openvpn-sso" class="hover:text-white transition-colors" target="_blank" rel="noopener" aria-label="GitHub">
+                        <i class="fa-brands fa-github text-xl"></i>
+                    </a>
+                    <a href="https://www.patreon.com/c/PegasusHeavyIndustries" class="hover:text-white transition-colors" target="_blank" rel="noopener" aria-label="Patreon">
+                        <i class="fa-brands fa-patreon text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
+                <p>MIT License &copy; 2026 <a href="https://github.com/pegasusheavy" class="hover:text-white transition-colors">Pegasus Heavy Industries LLC</a></p>
+                <p class="mt-2">
+                    <a href="mailto:pegasusheavyindustries@gmail.com" class="hover:text-white transition-colors">pegasusheavyindustries@gmail.com</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Smooth scroll behavior for anchor links -->
+    <script>
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
