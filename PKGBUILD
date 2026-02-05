@@ -33,6 +33,14 @@ package() {
     install -Dm644 "data/org.freedesktop.NetworkManager.openvpn-sso.conf" \
         "$pkgdir/usr/share/dbus-1/system.d/nm-openvpn-sso-service.conf"
     
+    # Install helper script for KDE/CLI users
+    install -Dm755 "data/vpn-sso-connect.sh" \
+        "$pkgdir/usr/bin/vpn-sso-connect"
+    
+    # Install desktop entry
+    install -Dm644 "data/vpn-sso-connect.desktop" \
+        "$pkgdir/usr/share/applications/vpn-sso-connect.desktop"
+    
     # Install license
     install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

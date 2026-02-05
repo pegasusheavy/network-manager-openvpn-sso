@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=VPN SSO Connect
+Comment=Connect to SSO-enabled OpenVPN connections
+GenericName=VPN Connection Manager
+Exec=vpn-sso-connect
+Icon=network-vpn
+Terminal=false
+Type=Application
+Categories=Network;System;
+Keywords=vpn;openvpn;sso;oauth;network;connect;
+StartupNotify=true
+Actions=status;
+
+[Desktop Action status]
+Name=Show VPN Status
+Exec=vpn-sso-connect --status
+Icon=network-vpn

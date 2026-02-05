@@ -447,7 +447,17 @@
                         <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
                     </summary>
                     <div class="px-6 pb-6 text-gray-400">
-                        Yes! The plugin integrates with NetworkManager and works with all desktop environments including KDE Plasma, GNOME, XFCE, and others. It properly detects your graphical session and opens your default browser for authentication.
+                        Yes! The plugin works with all desktop environments. On <strong>GNOME</strong>, it integrates with the network settings. On <strong>KDE Plasma</strong>, you may see a "missing support" message in the network applet—this is normal because KDE requires a separate UI plugin. The VPN still works perfectly via <code>nmcli</code> command line or the <code>nm-connection-editor</code> GUI tool.
+                    </div>
+                </details>
+                
+                <details class="glass rounded-xl group">
+                    <summary class="p-6 cursor-pointer flex items-center justify-between font-semibold">
+                        <span>KDE Plasma shows "missing support" - what do I do?</span>
+                        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-gray-400">
+                        This is expected behavior. KDE's network applet requires a separate UI plugin for each VPN type. Your VPN works fine—just use <code>nmcli connection up "your-vpn-name"</code> to connect, or install <code>nm-connection-editor</code> for a GUI. You can also create a desktop shortcut for one-click VPN connection.
                     </div>
                 </details>
                 

@@ -74,6 +74,8 @@ assets = [
     ["target/release/nm-openvpn-sso-service", "/usr/lib/nm-openvpn-sso-service", "755"],
     ["data/nm-openvpn-sso-service.name", "/usr/lib/NetworkManager/VPN/nm-openvpn-sso-service.name", "644"],
     ["data/org.freedesktop.NetworkManager.openvpn-sso.conf", "/usr/share/dbus-1/system.d/nm-openvpn-sso-service.conf", "644"],
+    ["data/vpn-sso-connect.sh", "/usr/bin/vpn-sso-connect", "755"],
+    ["data/vpn-sso-connect.desktop", "/usr/share/applications/vpn-sso-connect.desktop", "644"],
     ["LICENSE", "/usr/share/doc/networkmanager-openvpn-sso/LICENSE", "644"],
 ]
 
@@ -85,6 +87,8 @@ assets = [
     { source = "target/release/nm-openvpn-sso-service", dest = "/usr/lib/nm-openvpn-sso-service", mode = "755" },
     { source = "data/nm-openvpn-sso-service.name", dest = "/usr/lib/NetworkManager/VPN/nm-openvpn-sso-service.name", mode = "644" },
     { source = "data/org.freedesktop.NetworkManager.openvpn-sso.conf", dest = "/usr/share/dbus-1/system.d/nm-openvpn-sso-service.conf", mode = "644" },
+    { source = "data/vpn-sso-connect.sh", dest = "/usr/bin/vpn-sso-connect", mode = "755" },
+    { source = "data/vpn-sso-connect.desktop", dest = "/usr/share/applications/vpn-sso-connect.desktop", mode = "644" },
     { source = "LICENSE", dest = "/usr/share/licenses/networkmanager-openvpn-sso/LICENSE", mode = "644", doc = true },
 ]
 

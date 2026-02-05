@@ -27,11 +27,11 @@ LIBDIR="${LIBDIR:-$PREFIX/lib}"
 SYSCONFDIR="${SYSCONFDIR:-/etc}"
 
 # Paths
-NM_VPN_DIR="$SYSCONFDIR/NetworkManager/VPN"
-NM_LIB_DIR="$LIBDIR/NetworkManager"
-DBUS_SYSTEM_SERVICES="$PREFIX/share/dbus-1/system-services"
-DBUS_SYSTEM_CONF="$SYSCONFDIR/dbus-1/system.d"
-SYSTEMD_SYSTEM_DIR="$LIBDIR/systemd/system"
+NM_VPN_DIR="$LIBDIR/NetworkManager/VPN"
+NM_PLUGIN_DIR="$LIBDIR"
+DBUS_SYSTEM_CONF="$PREFIX/share/dbus-1/system.d"
+DESKTOP_DIR="$PREFIX/share/applications"
+BIN_DIR="$PREFIX/bin"
 
 # Build the project
 info "Building nm-openvpn-sso..."
@@ -49,36 +49,38 @@ fi
 # Create directories
 info "Creating directories..."
 mkdir -p "$NM_VPN_DIR"
-mkdir -p "$NM_LIB_DIR"
-mkdir -p "$DBUS_SYSTEM_SERVICES"
+mkdir -p "$NM_PLUGIN_DIR"
 mkdir -p "$DBUS_SYSTEM_CONF"
-mkdir -p "$SYSTEMD_SYSTEM_DIR"
+mkdir -p "$DESKTOP_DIR"
+mkdir -p "$BIN_DIR"
 
 # Install binary
-info "Installing binary to $NM_LIB_DIR..."
-install -m 755 "$BINARY" "$NM_LIB_DIR/nm-openvpn-sso-service"
+info "Installing binary to $NM_PLUGIN_DIR..."
+install -m 755 "$BINARY" "$NM_PLUGIN_DIR/nm-openvpn-sso-service"
 
 # Install NetworkManager plugin file
 info "Installing NetworkManager plugin configuration..."
 install -m 644 data/nm-openvpn-sso-service.name "$NM_VPN_DIR/"
 
-# Install D-Bus service file
-info "Installing D-Bus service file..."
-install -m 644 data/org.freedesktop.NetworkManager.openvpn-sso.service "$DBUS_SYSTEM_SERVICES/"
-
 # Install D-Bus policy
 info "Installing D-Bus policy..."
 install -m 644 data/org.freedesktop.NetworkManager.openvpn-sso.conf "$DBUS_SYSTEM_CONF/"
 
-# Install systemd service
-info "Installing systemd service..."
-install -m 644 data/nm-openvpn-sso.service "$SYSTEMD_SYSTEM_DIR/"
+# Install helper script
+info "Installing VPN helper script..."
+install -m 755 data/vpn-sso-connect.sh "$BIN_DIR/vpn-sso-connect"
+
+# Install desktop file
+info "Installing desktop entry..."
+install -m 644 data/vpn-sso-connect.desktop "$DESKTOP_DIR/"
 
 # Reload daemons
 info "Reloading system daemons..."
-systemctl daemon-reload
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus \
     /org/freedesktop/DBus org.freedesktop.DBus.ReloadConfig 2>/dev/null || true
+
+# Update desktop database
+update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
 
 # Restart NetworkManager to pick up the new plugin
 info "Restarting NetworkManager..."
@@ -87,9 +89,15 @@ systemctl restart NetworkManager
 info "Installation complete!"
 echo ""
 echo "The OpenVPN SSO plugin is now available in NetworkManager."
-echo "You can create a new VPN connection using:"
 echo ""
-echo "  nmcli connection add type vpn vpn-type openvpn-sso con-name \"My VPN\" \\"
-echo "    vpn.data \"config=/path/to/your.ovpn\""
+echo "To add a VPN connection:"
+echo "  nmcli connection import type openvpn file your-config.ovpn"
+echo "  nmcli connection modify \"connection-name\" vpn.service-type org.freedesktop.NetworkManager.openvpn-sso"
 echo ""
-echo "Or use the NetworkManager GUI and select 'OpenVPN SSO' as the VPN type."
+echo "To connect:"
+echo "  nmcli connection up \"connection-name\""
+echo ""
+echo "Or use the 'VPN SSO Connect' app from your application menu."
+echo ""
+echo "Note: KDE Plasma shows 'missing support' in its network applet - this is normal."
+echo "Use 'vpn-sso-connect' command or nm-connection-editor for GUI management."

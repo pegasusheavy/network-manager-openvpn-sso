@@ -76,7 +76,40 @@ Your default browser will open for SSO authentication. After successful login, t
 
 ### Using with Network Manager GUI
 
+#### GNOME
+
 The VPN connection will appear in your system's network settings and can be activated from there. When connecting, your browser will open for authentication.
+
+#### KDE Plasma
+
+KDE Plasma's network applet (`plasma-nm`) requires a separate UI plugin to display VPN types. You may see a message: *"Plasma is missing support for 'openvpn-sso' VPN connections."*
+
+**The VPN still works!** Use one of these methods:
+
+1. **Command line** (recommended):
+   ```bash
+   nmcli connection up "your-vpn-name"
+   ```
+
+2. **nm-connection-editor** (GUI):
+   ```bash
+   nm-connection-editor
+   ```
+   This GTK-based tool works on KDE and allows you to manage all VPN connections.
+
+3. **Create a desktop shortcut** for quick access:
+   ```bash
+   cat > ~/.local/share/applications/vpn-connect.desktop << 'EOF'
+   [Desktop Entry]
+   Name=Connect VPN (SSO)
+   Comment=Connect to SSO-enabled VPN
+   Exec=nmcli connection up "your-vpn-name"
+   Icon=network-vpn
+   Terminal=false
+   Type=Application
+   Categories=Network;
+   EOF
+   ```
 
 ## Requirements
 
@@ -148,6 +181,10 @@ Verify that the VPN routes are correctly applied:
 ```bash
 ip route | grep tun
 ```
+
+### KDE Plasma shows "missing support" message
+
+This is expected. KDE's network applet requires a separate UI plugin for each VPN type. The VPN works fine—just use `nmcli` or `nm-connection-editor` to connect. See the [KDE Plasma usage section](#kde-plasma) above for details.
 
 ## How It Works
 
