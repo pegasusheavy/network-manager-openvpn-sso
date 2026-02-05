@@ -1,0 +1,177 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            artifact_name: nm-openvpn-sso-service
+            asset_name: nm-openvpn-sso-service-linux-x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev \
+            libssl-dev \
+            pkg-config
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-release-
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Strip binary
+        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Create tarball
+        run: |
+          mkdir -p release
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
+          cp data/nm-openvpn-sso-service.name release/
+          cp data/org.freedesktop.NetworkManager.openvpn-sso.conf release/
+          cp install.sh release/
+          cp uninstall.sh release/
+          cp LICENSE release/
+          tar -czvf ${{ matrix.asset_name }}.tar.gz -C release .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}.tar.gz
+
+  build-arch-package:
+    name: Build Arch Linux Package
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            base-devel \
+            rust \
+            cargo \
+            dbus \
+            openssl \
+            pkgconf \
+            git
+
+      - name: Create build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+      - name: Update PKGBUILD for release
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+      - name: Build package
+        run: |
+          su builder -c "makepkg -sf --noconfirm"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-linux-package
+          path: "*.pkg.tar.zst"
+
+  create-release:
+    name: Create Release
+    needs: [build-linux, build-arch-package]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifacts
+        run: ls -R artifacts
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes since $PREV_TAG" > CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> CHANGELOG.md
+          else
+            echo "## Initial Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "First release of NetworkManager OpenVPN SSO plugin." >> CHANGELOG.md
+          fi
+          
+          echo "" >> CHANGELOG.md
+          echo "## Installation" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Arch Linux" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "# Download and install the .pkg.tar.zst file" >> CHANGELOG.md
+          echo "sudo pacman -U nm-openvpn-sso-*.pkg.tar.zst" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Other Linux Distributions" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "# Extract the tarball" >> CHANGELOG.md
+          echo "tar -xzf nm-openvpn-sso-service-linux-x86_64.tar.gz" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "# Run the install script" >> CHANGELOG.md
+          echo "sudo ./install.sh" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: |
+            artifacts/nm-openvpn-sso-service-linux-x86_64/*.tar.gz
+            artifacts/arch-linux-package/*.pkg.tar.zst
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
