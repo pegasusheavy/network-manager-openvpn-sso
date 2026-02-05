@@ -72,6 +72,96 @@ jobs:
           name: ${{ matrix.asset_name }}
           path: ${{ matrix.asset_name }}.tar.gz
 
+  build-deb:
+    name: Build Debian Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev \
+            libssl-dev \
+            pkg-config \
+            dpkg-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-deb-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-deb-
+
+      - name: Build .deb package
+        run: cargo deb
+
+      - name: Rename package with version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mv target/debian/*.deb networkmanager-openvpn-sso_${VERSION}_amd64.deb
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: "*.deb"
+
+  build-rpm:
+    name: Build RPM Package
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            rust \
+            cargo \
+            dbus-devel \
+            openssl-devel \
+            pkg-config \
+            rpm-build \
+            gcc
+
+      - name: Install cargo-generate-rpm
+        run: cargo install cargo-generate-rpm
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Strip binary
+        run: strip target/release/nm-openvpn-sso-service
+
+      - name: Build .rpm package
+        run: cargo generate-rpm
+
+      - name: Rename package with version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mv target/generate-rpm/*.rpm networkmanager-openvpn-sso-${VERSION}-1.x86_64.rpm
+
+      - name: Upload .rpm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-package
+          path: "*.rpm"
+
   build-arch-package:
     name: Build Arch Linux Package
     runs-on: ubuntu-latest
@@ -117,7 +207,7 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: [build-linux, build-arch-package]
+    needs: [build-linux, build-deb, build-rpm, build-arch-package]
     runs-on: ubuntu-latest
 
     steps:
@@ -147,12 +237,23 @@ jobs:
           fi
           
           echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
           echo "## Installation" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Debian/Ubuntu" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "sudo dpkg -i networkmanager-openvpn-sso_*_amd64.deb" >> CHANGELOG.md
+          echo "sudo apt-get install -f  # Install any missing dependencies" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Fedora/RHEL/CentOS" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "sudo dnf install networkmanager-openvpn-sso-*.x86_64.rpm" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "### Arch Linux" >> CHANGELOG.md
           echo '```bash' >> CHANGELOG.md
-          echo "# Download and install the .pkg.tar.zst file" >> CHANGELOG.md
-          echo "sudo pacman -U nm-openvpn-sso-*.pkg.tar.zst" >> CHANGELOG.md
+          echo "sudo pacman -U networkmanager-openvpn-sso-*.pkg.tar.zst" >> CHANGELOG.md
           echo '```' >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "### Other Linux Distributions" >> CHANGELOG.md
@@ -170,6 +271,8 @@ jobs:
           body_path: CHANGELOG.md
           files: |
             artifacts/nm-openvpn-sso-service-linux-x86_64/*.tar.gz
+            artifacts/debian-package/*.deb
+            artifacts/rpm-package/*.rpm
             artifacts/arch-linux-package/*.pkg.tar.zst
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}

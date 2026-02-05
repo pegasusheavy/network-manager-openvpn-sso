@@ -5,7 +5,10 @@ edition = "2021"
 authors = ["Pegasus Heavy Industries LLC <pegasusheavyindustries@gmail.com>"]
 license = "MIT"
 description = "NetworkManager VPN plugin for OpenVPN with SSO/OAuth authentication"
-repository = "https://github.com/PegasusHeavyIndustries/network-manager-openvpn-sso"
+repository = "https://github.com/pegasusheavy/network-manager-openvpn-sso"
+homepage = "https://github.com/pegasusheavy/network-manager-openvpn-sso"
+keywords = ["networkmanager", "openvpn", "sso", "oauth", "vpn"]
+categories = ["network-programming", "authentication"]
 
 [[bin]]
 name = "nm-openvpn-sso-service"
@@ -52,3 +55,39 @@ notify-rust = "4"
 [profile.release]
 lto = true
 strip = true
+
+# Debian package configuration (cargo-deb)
+[package.metadata.deb]
+name = "networkmanager-openvpn-sso"
+maintainer = "Pegasus Heavy Industries LLC <pegasusheavyindustries@gmail.com>"
+copyright = "2026, Pegasus Heavy Industries LLC"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On \
+support for OpenVPN connections. Features include browser-based SSO \
+authentication, automatic OAuth configuration discovery from OpenVPN \
+servers, session token caching, and desktop notifications."""
+depends = "$auto, openvpn, network-manager"
+section = "net"
+priority = "optional"
+assets = [
+    ["target/release/nm-openvpn-sso-service", "/usr/lib/nm-openvpn-sso-service", "755"],
+    ["data/nm-openvpn-sso-service.name", "/usr/lib/NetworkManager/VPN/nm-openvpn-sso-service.name", "644"],
+    ["data/org.freedesktop.NetworkManager.openvpn-sso.conf", "/usr/share/dbus-1/system.d/nm-openvpn-sso-service.conf", "644"],
+    ["LICENSE", "/usr/share/doc/networkmanager-openvpn-sso/LICENSE", "644"],
+]
+
+# RPM package configuration (cargo-generate-rpm)
+[package.metadata.generate-rpm]
+name = "networkmanager-openvpn-sso"
+license = "MIT"
+assets = [
+    { source = "target/release/nm-openvpn-sso-service", dest = "/usr/lib/nm-openvpn-sso-service", mode = "755" },
+    { source = "data/nm-openvpn-sso-service.name", dest = "/usr/lib/NetworkManager/VPN/nm-openvpn-sso-service.name", mode = "644" },
+    { source = "data/org.freedesktop.NetworkManager.openvpn-sso.conf", dest = "/usr/share/dbus-1/system.d/nm-openvpn-sso-service.conf", mode = "644" },
+    { source = "LICENSE", dest = "/usr/share/licenses/networkmanager-openvpn-sso/LICENSE", mode = "644", doc = true },
+]
+
+[package.metadata.generate-rpm.requires]
+NetworkManager = "*"
+openvpn = "*"
