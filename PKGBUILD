@@ -1,6 +1,6 @@
 # Maintainer: Pegasus Heavy Industries LLC <pegasusheavyindustries@gmail.com>
 pkgname=networkmanager-openvpn-sso
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=2
 pkgdesc="NetworkManager VPN plugin for OpenVPN with SSO/OAuth authentication"
 arch=('x86_64')
