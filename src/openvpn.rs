@@ -104,6 +104,9 @@ impl OpenVpnManager {
 
     /// Start OpenVPN and manage the connection
     pub async fn connect(&mut self) -> Result<()> {
+        // Kill any stale openvpn processes using the same management socket
+        self.kill_stale_openvpn_processes().await;
+
         // Clean up old socket if exists
         let _ = tokio::fs::remove_file(&self.socket_path).await;
 
@@ -135,11 +138,50 @@ impl OpenVpnManager {
         self.run_management_loop().await
     }
 
+    /// Kill any stale openvpn processes that reference our management socket path.
+    /// This handles the case where a previous connection attempt left orphan processes.
+    async fn kill_stale_openvpn_processes(&self) {
+        let socket_str = self.socket_path.to_string_lossy().to_string();
+        match Command::new("pkill")
+            .args(["-f", &format!("openvpn.*{}", socket_str)])
+            .output()
+            .await
+        {
+            Ok(output) if output.status.success() => {
+                info!("Killed stale openvpn processes using socket {}", socket_str);
+                // Give processes time to exit
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            _ => {}
+        }
+    }
+
     /// Wait for the management socket to become available
-    async fn wait_for_socket(&self) -> Result<()> {
+    async fn wait_for_socket(&mut self) -> Result<()> {
         for _ in 0..50 {
             if self.socket_path.exists() {
                 return Ok(());
+            }
+            // Check if OpenVPN has already exited (e.g., config error)
+            if let Some(ref mut child) = self.process {
+                if let Ok(Some(status)) = child.try_wait() {
+                    let mut stderr_msg = String::new();
+                    if let Some(mut stderr) = child.stderr.take() {
+                        use tokio::io::AsyncReadExt;
+                        let mut buf = Vec::new();
+                        let _ = stderr.read_to_end(&mut buf).await;
+                        stderr_msg = String::from_utf8_lossy(&buf).to_string();
+                    }
+                    error!("OpenVPN exited early with status: {}", status);
+                    if !stderr_msg.is_empty() {
+                        error!("OpenVPN stderr: {}", stderr_msg);
+                    }
+                    return Err(anyhow!(
+                        "OpenVPN exited with status {} before creating management socket. stderr: {}",
+                        status,
+                        stderr_msg
+                    ));
+                }
             }
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }

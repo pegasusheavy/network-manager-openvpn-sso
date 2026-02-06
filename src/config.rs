@@ -100,7 +100,12 @@ impl ConnectionConfig {
 
         // Apply overrides
         if let Some(ref remote) = self.remote {
-            args.extend(["--remote".to_string(), remote.clone()]);
+            // NM stores remote as "host:port" — split for OpenVPN's --remote host [port]
+            if let Some((host, port)) = remote.rsplit_once(':') {
+                args.extend(["--remote".to_string(), host.to_string(), port.to_string()]);
+            } else {
+                args.extend(["--remote".to_string(), remote.clone()]);
+            }
         }
 
         if let Some(port) = self.port {

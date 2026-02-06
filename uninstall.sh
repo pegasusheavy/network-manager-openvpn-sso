@@ -26,11 +26,12 @@ systemctl stop nm-openvpn-sso.service 2>/dev/null || true
 systemctl disable nm-openvpn-sso.service 2>/dev/null || true
 
 info "Removing files..."
-rm -f "$LIBDIR/NetworkManager/nm-openvpn-sso-service"
-rm -f "$SYSCONFDIR/NetworkManager/VPN/nm-openvpn-sso-service.name"
-rm -f "$PREFIX/share/dbus-1/system-services/org.freedesktop.NetworkManager.openvpn-sso.service"
-rm -f "$SYSCONFDIR/dbus-1/system.d/org.freedesktop.NetworkManager.openvpn-sso.conf"
-rm -f "$LIBDIR/systemd/system/nm-openvpn-sso.service"
+rm -f "$LIBDIR/nm-openvpn-sso-service"
+rm -f "$LIBDIR/NetworkManager/VPN/nm-openvpn-sso-service.name"
+rm -f "$PREFIX/share/dbus-1/system.d/org.freedesktop.NetworkManager.openvpn-sso.conf"
+rm -f "$PREFIX/bin/vpn-sso-connect"
+rm -f "$PREFIX/share/applications/vpn-sso-connect.desktop"
+rm -f "$LIBDIR/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_openvpnssoui.so"
 
 info "Reloading daemons..."
 systemctl daemon-reload

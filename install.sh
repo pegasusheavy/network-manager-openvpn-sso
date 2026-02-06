@@ -74,6 +74,25 @@ install -m 755 data/vpn-sso-connect.sh "$BIN_DIR/vpn-sso-connect"
 info "Installing desktop entry..."
 install -m 644 data/vpn-sso-connect.desktop "$DESKTOP_DIR/"
 
+# Build and install plasma-nm plugin if KDE dependencies are available
+PLASMA_INSTALLED=false
+if command -v cmake &> /dev/null && pkg-config --exists "KF6NetworkManagerQt" 2>/dev/null && [[ -f "$LIBDIR/libplasmanm_editor.so" ]]; then
+    info "Building plasma-nm plugin for KDE Plasma..."
+    cmake -B plasma-nm-plugin/build -S plasma-nm-plugin 2>/dev/null
+    if cmake --build plasma-nm-plugin/build 2>/dev/null; then
+        PLASMA_PLUGIN_DIR="$LIBDIR/qt6/plugins/plasma/network/vpn"
+        mkdir -p "$PLASMA_PLUGIN_DIR"
+        install -m 755 plasma-nm-plugin/build/plasmanetworkmanagement_openvpnssoui.so "$PLASMA_PLUGIN_DIR/"
+        info "Plasma-nm plugin installed."
+        PLASMA_INSTALLED=true
+    else
+        warn "Failed to build plasma-nm plugin (KDE integration will not be available)."
+    fi
+else
+    warn "KDE dependencies not found - skipping plasma-nm plugin build."
+    warn "KDE Plasma users: install extra-cmake-modules, qt6-base, networkmanager-qt, kio, ki18n, kcoreaddons, plasma-nm and re-run."
+fi
+
 # Reload daemons
 info "Reloading system daemons..."
 dbus-send --system --type=method_call --dest=org.freedesktop.DBus \
@@ -98,6 +117,8 @@ echo "To connect:"
 echo "  nmcli connection up \"connection-name\""
 echo ""
 echo "Or use the 'VPN SSO Connect' app from your application menu."
-echo ""
-echo "Note: KDE Plasma shows 'missing support' in its network applet - this is normal."
-echo "Use 'vpn-sso-connect' command or nm-connection-editor for GUI management."
+if [[ "$PLASMA_INSTALLED" != "true" ]]; then
+    echo ""
+    echo "Note: KDE Plasma users may see 'missing support' in the network applet."
+    echo "Install KDE dependencies and re-run to enable native Plasma integration."
+fi

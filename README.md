@@ -82,34 +82,19 @@ The VPN connection will appear in your system's network settings and can be acti
 
 #### KDE Plasma
 
-KDE Plasma's network applet (`plasma-nm`) requires a separate UI plugin to display VPN types. You may see a message: *"Plasma is missing support for 'openvpn-sso' VPN connections."*
+This project includes a native **plasma-nm UI plugin** that integrates directly with KDE Plasma's network applet. When installed, you can:
 
-**The VPN still works!** Use one of these methods:
+- Create, configure, and manage OpenVPN SSO connections from Plasma's network settings
+- Import `.ovpn` files directly through the Plasma UI
+- Connect and disconnect from the system tray network applet
 
-1. **Command line** (recommended):
-   ```bash
-   nmcli connection up "your-vpn-name"
-   ```
+The plugin is built automatically during installation if KDE dependencies are available.
 
-2. **nm-connection-editor** (GUI):
-   ```bash
-   nm-connection-editor
-   ```
-   This GTK-based tool works on KDE and allows you to manage all VPN connections.
+**If the plugin is not installed**, you can still use:
 
-3. **Create a desktop shortcut** for quick access:
-   ```bash
-   cat > ~/.local/share/applications/vpn-connect.desktop << 'EOF'
-   [Desktop Entry]
-   Name=Connect VPN (SSO)
-   Comment=Connect to SSO-enabled VPN
-   Exec=nmcli connection up "your-vpn-name"
-   Icon=network-vpn
-   Terminal=false
-   Type=Application
-   Categories=Network;
-   EOF
-   ```
+1. **Command line**: `nmcli connection up "your-vpn-name"`
+2. **nm-connection-editor**: GTK-based GUI that works on KDE
+3. **vpn-sso-connect**: Helper script with KDialog integration (installed with this package)
 
 ## Requirements
 
@@ -125,6 +110,9 @@ KDE Plasma's network applet (`plasma-nm`) requires a separate UI plugin to displ
 ```bash
 # Arch Linux
 sudo pacman -S rust cargo dbus openssl pkgconf
+
+# For KDE Plasma integration (optional)
+sudo pacman -S extra-cmake-modules qt6-base networkmanager-qt kio ki18n kcoreaddons plasma-nm
 
 # Debian/Ubuntu
 sudo apt-get install rustc cargo libdbus-1-dev libssl-dev pkg-config
@@ -184,7 +172,15 @@ ip route | grep tun
 
 ### KDE Plasma shows "missing support" message
 
-This is expected. KDE's network applet requires a separate UI plugin for each VPN type. The VPN works fine—just use `nmcli` or `nm-connection-editor` to connect. See the [KDE Plasma usage section](#kde-plasma) above for details.
+This means the plasma-nm UI plugin is not installed. Rebuild with KDE dependencies available:
+
+```bash
+# Arch Linux
+sudo pacman -S extra-cmake-modules qt6-base networkmanager-qt kio ki18n kcoreaddons plasma-nm
+sudo ./install.sh
+```
+
+The VPN still works without the plugin—use `nmcli` or `nm-connection-editor` to connect.
 
 ## How It Works
 

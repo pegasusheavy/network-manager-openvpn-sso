@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "pegasusheavyindustries@gmail.com",
+                "Name": "Pegasus Heavy Industries LLC"
+            }
+        ],
+        "Category": "VPNService",
+        "Description": "Compatible with OpenVPN servers using SSO/OAuth authentication",
+        "EnabledByDefault": false,
+        "Icon": "",
+        "License": "MIT",
+        "Name": "OpenVPN SSO",
+        "Version": "0.1.0",
+        "Website": "https://github.com/pegasusheavy/network-manager-openvpn-sso"
+    },
+    "X-NetworkManager-Services": "org.freedesktop.NetworkManager.openvpn-sso"
+}
