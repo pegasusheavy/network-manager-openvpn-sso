@@ -16,8 +16,8 @@ pub struct ConnectionConfig {
     pub uuid: String,
     /// Human-readable connection name
     pub id: String,
-    /// Path to the .ovpn configuration file
-    pub config_path: PathBuf,
+    /// Path to the .ovpn configuration file (None for NM-imported connections)
+    pub config_path: Option<PathBuf>,
     /// Optional server override
     pub remote: Option<String>,
     /// Optional port override
@@ -30,6 +30,26 @@ pub struct ConnectionConfig {
     pub password: Option<String>,
     /// Additional OpenVPN arguments
     pub extra_args: Vec<String>,
+    /// CA certificate path (from vpn.data "ca")
+    pub ca: Option<String>,
+    /// Client certificate path (from vpn.data "cert")
+    pub cert: Option<String>,
+    /// Client key path (from vpn.data "key")
+    pub key: Option<String>,
+    /// TLS auth key path (from vpn.data "ta")
+    pub ta: Option<String>,
+    /// TLS auth key direction (from vpn.data "ta-dir")
+    pub ta_dir: Option<String>,
+    /// Cipher algorithm (from vpn.data "cipher")
+    pub cipher: Option<String>,
+    /// Auth/digest algorithm (from vpn.data "auth")
+    pub auth: Option<String>,
+    /// Tunnel device type (from vpn.data "dev")
+    pub dev: Option<String>,
+    /// Remote cert TLS check (from vpn.data "remote-cert-tls")
+    pub remote_cert_tls: Option<String>,
+    /// Connection type: tls, password, etc. (from vpn.data "connection-type")
+    pub connection_type: Option<String>,
 }
 
 impl ConnectionConfig {
@@ -54,11 +74,26 @@ impl ConnectionConfig {
         // Get VPN data (nested dict)
         let vpn_data = get_string_dict(vpn, "data").unwrap_or_default();
 
-        let config_path = vpn_data
-            .get("config")
-            .or_else(|| vpn_data.get("connection-type"))
-            .map(PathBuf::from)
-            .ok_or_else(|| anyhow!("Missing OpenVPN config path in vpn.data.config"))?;
+        let config_path = vpn_data.get("config").map(PathBuf::from);
+
+        // Parse individual NM settings (used when config_path is None)
+        let ca = vpn_data.get("ca").cloned();
+        let cert = vpn_data.get("cert").cloned();
+        let key = vpn_data.get("key").cloned();
+        let ta = vpn_data.get("ta").cloned();
+        let ta_dir = vpn_data.get("ta-dir").cloned();
+        let cipher = vpn_data.get("cipher").cloned();
+        let auth = vpn_data.get("auth").cloned();
+        let dev = vpn_data.get("dev").cloned();
+        let remote_cert_tls = vpn_data.get("remote-cert-tls").cloned();
+        let connection_type = vpn_data.get("connection-type").cloned();
+
+        // Validate: need either a config file or at least a CA cert
+        if config_path.is_none() && ca.is_none() {
+            return Err(anyhow!(
+                "Missing OpenVPN config: need either vpn.data.config path or vpn.data.ca certificate"
+            ));
+        }
 
         let remote = vpn_data.get("remote").cloned();
         let port = vpn_data.get("port").and_then(|p| p.parse().ok());
@@ -79,26 +114,81 @@ impl ConnectionConfig {
             username,
             password,
             extra_args: Vec::new(),
+            ca,
+            cert,
+            key,
+            ta,
+            ta_dir,
+            cipher,
+            auth,
+            dev,
+            remote_cert_tls,
+            connection_type,
         })
     }
 
     /// Build OpenVPN command line arguments
     pub fn build_openvpn_args(&self, management_socket: &str) -> Vec<String> {
-        let mut args = vec![
-            "--config".to_string(),
-            self.config_path.to_string_lossy().to_string(),
-            // Management interface for auth and status
+        let mut args = Vec::new();
+
+        if let Some(ref config_path) = self.config_path {
+            // .ovpn file mode: use --config
+            args.extend([
+                "--config".to_string(),
+                config_path.to_string_lossy().to_string(),
+            ]);
+        } else {
+            // NM-imported mode: build from individual settings
+            args.extend([
+                "--client".to_string(),
+                "--nobind".to_string(),
+                "--dev".to_string(),
+                self.dev.clone().unwrap_or_else(|| "tun".to_string()),
+                "--persist-key".to_string(),
+                "--persist-tun".to_string(),
+                "--resolv-retry".to_string(),
+                "infinite".to_string(),
+            ]);
+
+            if let Some(ref ca) = self.ca {
+                args.extend(["--ca".to_string(), ca.clone()]);
+            }
+            if let Some(ref cert) = self.cert {
+                args.extend(["--cert".to_string(), cert.clone()]);
+            }
+            if let Some(ref key) = self.key {
+                args.extend(["--key".to_string(), key.clone()]);
+            }
+            if let Some(ref ta) = self.ta {
+                args.push("--tls-auth".to_string());
+                args.push(ta.clone());
+                if let Some(ref dir) = self.ta_dir {
+                    args.push(dir.clone());
+                }
+            }
+            if let Some(ref cipher) = self.cipher {
+                args.extend(["--cipher".to_string(), cipher.clone()]);
+            }
+            if let Some(ref auth) = self.auth {
+                args.extend(["--auth".to_string(), auth.clone()]);
+            }
+            if let Some(ref remote_cert_tls) = self.remote_cert_tls {
+                args.extend(["--remote-cert-tls".to_string(), remote_cert_tls.clone()]);
+            }
+        }
+
+        // Common: management interface
+        args.extend([
             "--management".to_string(),
             management_socket.to_string(),
             "unix".to_string(),
             "--management-query-passwords".to_string(),
             "--management-hold".to_string(),
-            // Script security for auth
             "--script-security".to_string(),
             "2".to_string(),
-        ];
+        ]);
 
-        // Apply overrides
+        // Common: apply overrides
         if let Some(ref remote) = self.remote {
             // NM stores remote as "host:port" — split for OpenVPN's --remote host [port]
             if let Some((host, port)) = remote.rsplit_once(':') {

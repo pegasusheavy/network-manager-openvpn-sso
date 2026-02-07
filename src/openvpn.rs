@@ -486,6 +486,60 @@ impl OpenVpnManager {
                                 .await
                                 .ok();
                         }
+                        "AUTH_PENDING" => {
+                            // AUTH_PENDING indicates the server wants external authentication
+                            // (e.g., OAuth/SSO). The OPEN_URL is in the state details.
+                            let full_state = parts[2..].join(",");
+                            info!("AUTH_PENDING state details: {}", full_state);
+
+                            if let Some(url) = extract_open_url(&full_state) {
+                                info!("Received SSO auth URL from AUTH_PENDING: {}", url);
+                                self.pending_auth_url = Some(url.clone());
+                                self.event_tx
+                                    .send(VpnEvent::AuthRequired {
+                                        auth_url: Some(url.clone()),
+                                    })
+                                    .await
+                                    .ok();
+
+                                // Start localhost callback server + open browser for SSO
+                                if !self.sso_auth_initiated {
+                                    self.sso_auth_initiated = true;
+
+                                    // Extract server base URL from auth URL for POSTing back
+                                    let server_base = match url::Url::parse(&url) {
+                                        Ok(u) => format!("{}://{}:{}", u.scheme(),
+                                            u.host_str().unwrap_or(""),
+                                            u.port().unwrap_or(9000)),
+                                        Err(e) => {
+                                            error!("Failed to parse auth URL: {}", e);
+                                            url.clone()
+                                        },
+                                    };
+
+                                    // Spawn the SSO flow (localhost server + browser + POST)
+                                    // in a background task so the management loop continues
+                                    let url_clone = url.clone();
+                                    tokio::spawn(async move {
+                                        match crate::oauth::authenticate_sso(
+                                            &url_clone, &server_base
+                                        ).await {
+                                            Ok(()) => info!("SSO authentication completed successfully"),
+                                            Err(e) => error!("SSO authentication failed: {}", e),
+                                        }
+                                    });
+                                } else {
+                                    info!("SSO auth already initiated, skipping duplicate");
+                                }
+                            } else {
+                                warn!("AUTH_PENDING state but no OPEN_URL found in: {}", full_state);
+                            }
+
+                            self.event_tx
+                                .send(VpnEvent::State(VpnState::NeedAuth))
+                                .await
+                                .ok();
+                        }
                         "GET_CONFIG" => {
                             self.event_tx
                                 .send(VpnEvent::State(VpnState::GettingConfig))
@@ -624,8 +678,13 @@ impl OpenVpnManager {
 
     /// Handle SSO/browser-based authentication
     ///
-    /// For OpenVPN web-auth, the server handles the OAuth callback itself.
-    /// We just open the browser and the server will signal success when done.
+    /// The flow:
+    /// 1. Start a localhost HTTP server on port 19823 to receive the OAuth callback
+    /// 2. Open the browser to the VPN server's /auth/start (which redirects to Google)
+    /// 3. Google authenticates the user and redirects to localhost:19823/oauth/callback
+    /// 4. We receive the auth code and POST it to the VPN server's /auth/complete
+    /// 5. The VPN server exchanges the code for a token, verifies the user, and
+    ///    completes the VPN authentication by sending PUSH_REPLY
     async fn handle_sso_auth(
         &mut self,
         _writer: &mut tokio::net::unix::OwnedWriteHalf,
@@ -640,21 +699,27 @@ impl OpenVpnManager {
         info!("Starting SSO authentication with URL: {}", auth_url);
         self.sso_auth_initiated = true;
 
-        // Open browser - the server handles the OAuth flow
+        // Extract the VPN server host from the auth URL for later POSTing
+        // auth_url looks like: http://34.214.23.25:9000/auth/start?state=...
+        let server_base_url = match url::Url::parse(auth_url) {
+            Ok(u) => format!("{}://{}:{}", u.scheme(), u.host_str().unwrap_or(""), u.port().unwrap_or(9000)),
+            Err(_) => {
+                self.sso_auth_initiated = false;
+                return Err(anyhow!("Invalid auth URL: {}", auth_url));
+            }
+        };
+
+        // Start the localhost callback server and open the browser concurrently
         use crate::oauth;
-        match oauth::authenticate(auth_url, None).await {
-            Ok(_result) => {
-                info!("Browser opened for SSO authentication");
-                // Don't send anything to OpenVPN - the server will handle
-                // the authentication and signal success through the management interface
-                // when the user completes the OAuth flow in the browser
+        match oauth::authenticate_sso(auth_url, &server_base_url).await {
+            Ok(()) => {
+                info!("SSO authentication flow completed");
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to open browser for SSO: {}", e);
-                // Reset flag on failure so user can retry
+                error!("SSO authentication failed: {}", e);
                 self.sso_auth_initiated = false;
-                Err(anyhow!("Failed to initiate SSO authentication: {}", e))
+                Err(anyhow!("SSO authentication failed: {}", e))
             }
         }
     }
@@ -819,6 +884,24 @@ fn extract_auth_token(message: &str) -> Option<String> {
     None
 }
 
+/// Extract OPEN_URL from an OpenVPN AUTH_PENDING state message.
+/// The state details may look like: "timeout 120,OPEN_URL:http://host:port/path?query"
+fn extract_open_url(message: &str) -> Option<String> {
+    if let Some(pos) = message.find("OPEN_URL:") {
+        let url_start = pos + "OPEN_URL:".len();
+        // URL ends at comma, whitespace, or end of string
+        let url_end = message[url_start..]
+            .find(|c: char| c == ',' || c.is_whitespace())
+            .map(|i| url_start + i)
+            .unwrap_or(message.len());
+        let url = &message[url_start..url_end];
+        if !url.is_empty() {
+            return Some(url.to_string());
+        }
+    }
+    None
+}
+
 /// Extract auth URL from OpenVPN message
 fn extract_auth_url(message: &str) -> Option<String> {
     // Look for common patterns in web-auth messages
@@ -830,6 +913,11 @@ fn extract_auth_url(message: &str) -> Option<String> {
             .map(|i| url_start + i)
             .unwrap_or(message.len());
         return Some(message[url_start..url_end].to_string());
+    }
+
+    // Pattern 1b: OPEN_URL:http://... (from AUTH_PENDING state or control message)
+    if let Some(url) = extract_open_url(message) {
+        return Some(url);
     }
 
     // Pattern 2: AUTH_PENDING with URL

@@ -191,8 +191,8 @@ impl VpnPlugin {
         })?;
 
         info!(
-            "Parsed config: uuid={}, id={}, config_path={:?}",
-            config.uuid, config.id, config.config_path
+            "Parsed config: uuid={}, id={}, config_path={:?}, ca={:?}",
+            config.uuid, config.id, config.config_path, config.ca
         );
 
         // Check if we have cached credentials
