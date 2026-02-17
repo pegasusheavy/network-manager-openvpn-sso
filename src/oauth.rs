@@ -21,6 +21,9 @@ use url::Url;
 /// Timeout for waiting for OAuth callback
 const AUTH_TIMEOUT_SECS: u64 = 60;
 
+/// Channel type for sending the OAuth result from the callback handler
+type OAuthResultSender = Arc<tokio::sync::Mutex<Option<oneshot::Sender<Result<(String, String)>>>>>;
+
 /// Result of OAuth authentication
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -206,7 +209,7 @@ pub async fn authenticate_sso(auth_url: &str, server_base_url: &str) -> Result<(
 
 /// Shared state for the SSO callback handler
 struct SsoCallbackState {
-    result_tx: Arc<tokio::sync::Mutex<Option<oneshot::Sender<Result<(String, String)>>>>>,
+    result_tx: OAuthResultSender,
 }
 
 /// Query parameters from Google's OAuth redirect
