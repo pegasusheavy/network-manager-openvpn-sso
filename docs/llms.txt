@@ -1,0 +1,50 @@
+# NetworkManager OpenVPN SSO Plugin
+
+> A NetworkManager VPN plugin that adds OAuth 2.0 / OIDC Single Sign-On (SSO) support for OpenVPN connections.
+
+NetworkManager OpenVPN SSO enables browser-based SSO authentication for OpenVPN connections on Linux desktops. It integrates directly with NetworkManager so VPN connections can be managed through standard network applets (GNOME, KDE Plasma) or the command line. When a connection is initiated, the plugin discovers the OAuth/OIDC endpoint from the OpenVPN server, opens the user's browser for authentication, and completes the VPN tunnel automatically once login succeeds.
+
+## Links
+
+- [Documentation](https://pegasusheavy.github.io/network-manager-openvpn-sso/)
+- [GitHub Repository](https://github.com/pegasusheavy/network-manager-openvpn-sso)
+
+## Key Features
+
+- Browser-based SSO authentication via OAuth 2.0 / OIDC
+- Automatic OAuth discovery from the OpenVPN server
+- Session token caching for connection maintenance
+- Desktop notifications for connection status
+- Full NetworkManager integration (GNOME and KDE Plasma network applets)
+- Native KDE Plasma plasma-nm UI plugin
+- Packages for Arch Linux, Debian/Ubuntu, Fedora/RHEL, and generic Linux tarballs
+
+## Installation
+
+```bash
+# Arch Linux
+sudo pacman -U networkmanager-openvpn-sso-*.pkg.tar.zst
+
+# Debian / Ubuntu
+sudo dpkg -i networkmanager-openvpn-sso_*_amd64.deb
+sudo apt-get install -f
+
+# From source
+git clone https://github.com/pegasusheavy/network-manager-openvpn-sso.git
+cd network-manager-openvpn-sso
+cargo build --release
+sudo ./install.sh
+```
+
+## Quick Start
+
+```bash
+# Import an OpenVPN configuration
+nmcli connection import type openvpn file your-vpn-config.ovpn
+
+# Switch the connection to use the SSO plugin
+nmcli connection modify "your-vpn-name" vpn.service-type org.freedesktop.NetworkManager.openvpn-sso
+
+# Connect (browser opens for SSO authentication)
+nmcli connection up "your-vpn-name"
+```
